@@ -108,8 +108,7 @@
     addMsg('user',text);
     history.push({role:'user',content:text});
 
-    const aiBubble=addMsg('ai','');
-    const cursor=document.createElement('span');cursor.className='cursor';aiBubble.appendChild(cursor);
+    const aiBubble=addMsg('ai','...');
 
     try{
       const res=await fetch('/api/chat',{
@@ -117,24 +116,14 @@
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({messages:history})
       });
-      const reader=res.body.getReader();
-      const dec=new TextDecoder();
-      let full='';
-      while(true){
-        const{done,value}=await reader.read();if(done)break;
-        for(const line of dec.decode(value).split('\n')){
-          if(!line.startsWith('data: '))continue;
-          try{
-            const j=JSON.parse(line.slice(6));
-            if(j.delta?.text){full+=j.delta.text;aiBubble.textContent=full;aiBubble.appendChild(cursor);scrollDown();}
-          }catch{}
-        }
-      }
-      history.push({role:'assistant',content:full});
-    }catch{
+      const data=await res.json();
+      const reply=data.text || data.error || 'Sorry, no response.';
+      aiBubble.textContent=reply;
+      scrollDown();
+      history.push({role:'assistant',content:reply});
+    }catch(err){
       aiBubble.textContent='Connection error. Please try again.';
     }
-    cursor.remove();
     busy=false;btn.disabled=false;inp.focus();
   }
 </script>
